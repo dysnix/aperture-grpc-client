@@ -1,0 +1,31 @@
+[package]
+name = "aperture-grpc-client"
+edition = "2024"
+version = "0.1.0"
+authors = ["Dysnix"]
+description = "Rust client for Aperture's lightweight decoded transaction gRPC stream"
+homepage = "https://rpcfast.com"
+repository = "https://github.com/dysnix/aperture-grpc-client"
+license = "Apache-2.0"
+readme = "README.md"
+keywords = ["aperture", "grpc", "solana", "client"]
+categories = ["api-bindings", "network-programming"]
+include = ["src/**", "examples/**", "README.md", "LICENSE"]
+
+[features]
+default = ["tls-native-roots"]
+tls-native-roots = ["tonic/tls-native-roots"]
+tls-webpki-roots = ["tonic/tls-webpki-roots"]
+
+[dependencies]
+aperture-grpc-proto = { version = "0.1.0", path = "../aperture-grpc-proto" }
+async-stream = "0.3.6"
+futures-core = "0.3.31"
+thiserror = "2.0.7"
+tokio = { version = "1.42.0", features = ["macros", "rt-multi-thread", "time"] }
+tonic = { version = "0.14.1", features = ["transport"] }
+tracing = "0.1.41"
+
+[dev-dependencies]
+futures-util = "0.3.31"
+tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }

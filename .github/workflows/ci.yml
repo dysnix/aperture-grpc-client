@@ -1,0 +1,28 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  rust:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: aperture-grpc-client
+      - name: Checkout aperture-grpc-proto
+        uses: actions/checkout@v4
+        with:
+          repository: dysnix/aperture-grpc-proto
+          path: aperture-grpc-proto
+          token: ${{ secrets.CI_GITHUB_TOKEN || github.token }}
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - run: cargo fmt --all --check
+        working-directory: aperture-grpc-client
+      - run: cargo clippy --all-targets -- -D warnings
+        working-directory: aperture-grpc-client
+      - run: cargo test --all-targets
+        working-directory: aperture-grpc-client
