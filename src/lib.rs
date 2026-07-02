@@ -14,8 +14,8 @@ use {
 };
 
 pub use aperture_grpc_proto::{
-    CompiledInstruction, DecodedTransaction, MessageHeader, SubscribeTransactionsRequest,
-    TransactionVersion, VoteFilter, aperture_client, aperture_server,
+    CompiledInstruction, DecodedTransaction, DecodedTransactionBatch, MessageHeader,
+    SubscribeTransactionsRequest, TransactionVersion, VoteFilter, aperture_client, aperture_server,
 };
 
 const DEFAULT_MAX_MESSAGE_SIZE: usize = 16 * 1024 * 1024;
@@ -138,6 +138,7 @@ pub struct SubscribeFilters {
     pub account_include: Vec<[u8; 32]>,
     pub account_exclude: Vec<[u8; 32]>,
     pub account_required: Vec<[u8; 32]>,
+    pub signatures_only: bool,
 }
 
 impl SubscribeFilters {
@@ -165,6 +166,16 @@ impl SubscribeFilters {
         self.account_required.push(account);
         self
     }
+
+    pub fn signatures_only(mut self) -> Self {
+        self.signatures_only = true;
+        self
+    }
+
+    pub fn with_signatures_only(mut self, signatures_only: bool) -> Self {
+        self.signatures_only = signatures_only;
+        self
+    }
 }
 
 impl From<SubscribeFilters> for SubscribeTransactionsRequest {
@@ -179,6 +190,7 @@ impl From<SubscribeFilters> for SubscribeTransactionsRequest {
                 .into_iter()
                 .map(Vec::from)
                 .collect(),
+            signatures_only: filters.signatures_only,
         }
     }
 }
@@ -220,6 +232,19 @@ impl ApertureGrpcClient {
         let mut request = Request::new(filters.into());
         apply_x_token(self.config.x_token.as_deref(), &mut request)?;
         Ok(client.subscribe_transactions(request).await?.into_inner())
+    }
+
+    pub async fn subscribe_batches_once(
+        &self,
+        filters: SubscribeFilters,
+    ) -> Result<Streaming<DecodedTransactionBatch>, ApertureGrpcClientError> {
+        let mut client = self.connect_once().await?;
+        let mut request = Request::new(filters.into());
+        apply_x_token(self.config.x_token.as_deref(), &mut request)?;
+        Ok(client
+            .subscribe_transaction_batches(request)
+            .await?
+            .into_inner())
     }
 
     pub fn subscribe_with_reconnect(
@@ -277,6 +302,66 @@ impl ApertureGrpcClient {
 
                 let delay = client.config.reconnect.delay_for_attempt(attempt);
                 tracing::info!(attempt, ?delay, "reconnecting Aperture gRPC stream");
+                tokio::time::sleep(delay).await;
+            }
+        }
+    }
+
+    pub fn subscribe_batches_with_reconnect(
+        &self,
+        filters: SubscribeFilters,
+    ) -> impl Stream<Item = Result<DecodedTransactionBatch, ApertureGrpcClientError>> + Send + 'static
+    {
+        let client = self.clone();
+        stream! {
+            let mut attempt = 0u32;
+            loop {
+                match client.subscribe_batches_once(filters.clone()).await {
+                    Ok(mut grpc_stream) => {
+                        attempt = 0;
+                        loop {
+                            match grpc_stream.message().await {
+                                Ok(Some(batch)) => {
+                                    attempt = 0;
+                                    yield Ok(batch);
+                                }
+                                Ok(None) => break,
+                                Err(status) => {
+                                    if !client.config.reconnect.enabled {
+                                        yield Err(ApertureGrpcClientError::Status(status));
+                                        return;
+                                    }
+                                    tracing::warn!(%status, "Aperture gRPC batch stream failed; reconnecting");
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    Err(error) => {
+                        if !client.config.reconnect.enabled {
+                            yield Err(error);
+                            return;
+                        }
+                        tracing::warn!(%error, "Aperture gRPC batch subscribe failed; reconnecting");
+                    }
+                }
+
+                if !client.config.reconnect.enabled {
+                    return;
+                }
+
+                attempt = attempt.saturating_add(1);
+                if let Some(max_attempts) = client.config.reconnect.max_attempts
+                    && attempt > max_attempts
+                {
+                    yield Err(ApertureGrpcClientError::ReconnectAttemptsExhausted {
+                        attempts: max_attempts,
+                    });
+                    return;
+                }
+
+                let delay = client.config.reconnect.delay_for_attempt(attempt);
+                tracing::info!(attempt, ?delay, "reconnecting Aperture gRPC batch stream");
                 tokio::time::sleep(delay).await;
             }
         }
@@ -347,7 +432,8 @@ mod tests {
                 .signature([1; 64])
                 .include_account([2; 32])
                 .exclude_account([3; 32])
-                .require_account([4; 32]),
+                .require_account([4; 32])
+                .signatures_only(),
         );
 
         assert_eq!(request.vote, VoteFilter::NonVoteOnly as i32);
@@ -355,6 +441,7 @@ mod tests {
         assert_eq!(request.account_include, vec![vec![2; 32]]);
         assert_eq!(request.account_exclude, vec![vec![3; 32]]);
         assert_eq!(request.account_required, vec![vec![4; 32]]);
+        assert!(request.signatures_only);
     }
 
     #[test]

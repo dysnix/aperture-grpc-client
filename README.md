@@ -4,7 +4,8 @@ Rust client for Aperture's lightweight decoded transaction gRPC stream.
 
 It wraps the generated [`aperture-grpc-proto`](https://github.com/dysnix/aperture-grpc-proto)
 bindings with tuned HTTP/2 defaults, keepalives, byte-safe filters, and an
-automatic reconnecting transaction stream.
+automatic reconnecting transaction stream. It supports both single-transaction
+and batched txstream RPCs.
 
 ## Install
 
@@ -48,6 +49,33 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 ```
 
+For lower per-message overhead, subscribe to batches:
+
+```rust,no_run
+use aperture_grpc_client::{
+    ApertureClientConfig, ApertureGrpcClient, SubscribeFilters, VoteFilter,
+};
+use futures_util::StreamExt;
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let config = ApertureClientConfig::new("https://aperture-grpc.rpcfast.com:443")
+        .with_x_token("rpcfast-token");
+    let client = ApertureGrpcClient::new(config);
+    let filters = SubscribeFilters::default()
+        .vote(VoteFilter::NonVoteOnly)
+        .signatures_only();
+    let mut stream = Box::pin(client.subscribe_batches_with_reconnect(filters));
+
+    while let Some(next) = stream.next().await {
+        let batch = next?;
+        println!("transactions={}", batch.transactions.len());
+    }
+
+    Ok(())
+}
+```
+
 Run the included example:
 
 ```bash
@@ -77,6 +105,8 @@ Filters use raw Solana bytes:
 - `account_exclude`: 32-byte pubkeys, reject if any static or loaded account matches.
 - `account_required`: 32-byte pubkeys, require all listed accounts.
 - `vote`: all, vote-only, or non-vote-only.
+- `signatures_only`: omit account/instruction payloads and keep only
+  slot/index/vote/timestamp/version/signatures.
 
 Instruction indexes are resolved by concatenating:
 
