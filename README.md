@@ -11,7 +11,7 @@ and batched txstream RPCs.
 
 ```toml
 [dependencies]
-aperture-grpc-client = "0.1.0"
+aperture-grpc-client = "0.2.0"
 ```
 
 Publish `aperture-grpc-proto` before publishing this crate; the client depends
