@@ -1,5 +1,7 @@
 #![doc = include_str!("../README.md")]
 
+#[cfg(feature = "tls-native-roots")]
+use tonic::transport::ClientTlsConfig;
 use {
     aperture_grpc_proto::aperture_client::ApertureClient,
     async_stream::stream,
@@ -403,8 +405,18 @@ fn build_endpoint(config: &ApertureClientConfig) -> Result<Endpoint, ApertureGrp
     if let Some(user_agent) = &config.user_agent {
         endpoint = endpoint.user_agent(user_agent.clone())?;
     }
+    #[cfg(feature = "tls-native-roots")]
+    if endpoint_uses_https(&config.endpoint) {
+        endpoint = endpoint.tls_config(ClientTlsConfig::new().with_native_roots())?;
+    }
 
     Ok(endpoint)
+}
+
+fn endpoint_uses_https(endpoint: &str) -> bool {
+    endpoint
+        .get(..8)
+        .is_some_and(|scheme| scheme.eq_ignore_ascii_case("https://"))
 }
 
 fn apply_x_token(
@@ -456,6 +468,14 @@ mod tests {
         assert_eq!(reconnect.delay_for_attempt(2), Duration::from_millis(200));
         assert_eq!(reconnect.delay_for_attempt(3), Duration::from_millis(350));
         assert_eq!(reconnect.delay_for_attempt(20), Duration::from_millis(350));
+    }
+
+    #[test]
+    fn endpoint_scheme_detection_is_https_only() {
+        assert!(endpoint_uses_https("https://aperture-grpc.rpcfast.com:443"));
+        assert!(endpoint_uses_https("HTTPS://aperture-grpc.rpcfast.com:443"));
+        assert!(!endpoint_uses_https("http://127.0.0.1:10000"));
+        assert!(!endpoint_uses_https("grpc://aperture-grpc.rpcfast.com:443"));
     }
 
     #[test]
