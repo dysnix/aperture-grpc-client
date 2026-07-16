@@ -11,7 +11,7 @@ and batched txstream RPCs.
 
 ```toml
 [dependencies]
-aperture-grpc-client = "0.2.1"
+aperture-grpc-client = "0.3.0"
 ```
 
 Publish `aperture-grpc-proto` before publishing this crate; the client depends
@@ -76,6 +76,42 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 ```
 
+Request real-time transaction simulation when you need a predicted execution
+result alongside each deshredded transaction:
+
+```rust,no_run
+use aperture_grpc_client::{
+    ApertureClientConfig, ApertureGrpcClient, SimulationStatus, SubscribeFilters,
+    VoteFilter,
+};
+use futures_util::StreamExt;
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let config = ApertureClientConfig::new("https://aperture-grpc.rpcfast.com:443")
+        .with_x_token("rpcfast-token");
+    let client = ApertureGrpcClient::new(config);
+    let filters = SubscribeFilters::default()
+        .vote(VoteFilter::NonVoteOnly)
+        .include_simulation();
+    let mut stream = Box::pin(client.subscribe_with_reconnect(filters));
+
+    while let Some(next) = stream.next().await {
+        let tx = next?;
+        if let Some(simulation) = tx.simulation {
+            let status = SimulationStatus::try_from(simulation.status)
+                .unwrap_or(SimulationStatus::Unspecified);
+            println!(
+                "slot={} status={status:?} bank_slot={:?} error={:?}",
+                tx.slot, simulation.bank_slot, simulation.error
+            );
+        }
+    }
+
+    Ok(())
+}
+```
+
 Run the included example:
 
 ```bash
@@ -108,6 +144,10 @@ Filters use raw Solana bytes:
 - `vote`: all, vote-only, or non-vote-only.
 - `signatures_only`: omit account/instruction payloads and keep only
   slot/index/vote/timestamp/version/signatures.
+- `include_simulation`: wait for transaction simulation and append status,
+  error, simulation slot, and timing to each transaction.
+  It can be combined with `signatures_only` for a compact
+  signature-and-result stream.
 
 Instruction indexes are resolved by concatenating:
 
@@ -115,5 +155,7 @@ Instruction indexes are resolved by concatenating:
 static_account_keys + loaded_writable_addresses + loaded_readonly_addresses
 ```
 
-The stream is pre-execution and does not include transaction status, logs,
-balances, rewards, inner instructions, or compute units.
+The stream is pre-execution by default and does not include confirmed execution
+metadata such as balances, rewards, or inner instructions. An
+`include_simulation` subscription adds predicted simulation status, error,
+simulation slot, and timing; it is not confirmation or finality.

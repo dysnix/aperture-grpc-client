@@ -17,7 +17,8 @@ use {
 
 pub use aperture_grpc_proto::{
     CompiledInstruction, DecodedTransaction, DecodedTransactionBatch, MessageHeader,
-    SubscribeTransactionsRequest, TransactionVersion, VoteFilter, aperture_client, aperture_server,
+    SimulationStatus, SubscribeTransactionsRequest, TransactionReturnData, TransactionSimulation,
+    TransactionVersion, VoteFilter, aperture_client, aperture_server,
 };
 
 const DEFAULT_MAX_MESSAGE_SIZE: usize = 16 * 1024 * 1024;
@@ -141,6 +142,8 @@ pub struct SubscribeFilters {
     pub account_exclude: Vec<[u8; 32]>,
     pub account_required: Vec<[u8; 32]>,
     pub signatures_only: bool,
+    /// Wait for transaction simulation and append the result to each transaction.
+    pub include_simulation: bool,
 }
 
 impl SubscribeFilters {
@@ -178,6 +181,16 @@ impl SubscribeFilters {
         self.signatures_only = signatures_only;
         self
     }
+
+    pub fn include_simulation(mut self) -> Self {
+        self.include_simulation = true;
+        self
+    }
+
+    pub fn with_include_simulation(mut self, include_simulation: bool) -> Self {
+        self.include_simulation = include_simulation;
+        self
+    }
 }
 
 impl From<SubscribeFilters> for SubscribeTransactionsRequest {
@@ -193,6 +206,7 @@ impl From<SubscribeFilters> for SubscribeTransactionsRequest {
                 .map(Vec::from)
                 .collect(),
             signatures_only: filters.signatures_only,
+            include_simulation: filters.include_simulation,
         }
     }
 }
@@ -413,6 +427,7 @@ fn build_endpoint(config: &ApertureClientConfig) -> Result<Endpoint, ApertureGrp
     Ok(endpoint)
 }
 
+#[cfg(any(feature = "tls-native-roots", test))]
 fn endpoint_uses_https(endpoint: &str) -> bool {
     endpoint
         .get(..8)
@@ -445,7 +460,8 @@ mod tests {
                 .include_account([2; 32])
                 .exclude_account([3; 32])
                 .require_account([4; 32])
-                .signatures_only(),
+                .signatures_only()
+                .include_simulation(),
         );
 
         assert_eq!(request.vote, VoteFilter::NonVoteOnly as i32);
@@ -454,6 +470,7 @@ mod tests {
         assert_eq!(request.account_exclude, vec![vec![3; 32]]);
         assert_eq!(request.account_required, vec![vec![4; 32]]);
         assert!(request.signatures_only);
+        assert!(request.include_simulation);
     }
 
     #[test]
