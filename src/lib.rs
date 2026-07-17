@@ -495,6 +495,12 @@ mod tests {
         assert!(!endpoint_uses_https("grpc://aperture-grpc.rpcfast.com:443"));
     }
 
+    #[cfg(all(feature = "tls-native-roots", feature = "tls-ring"))]
+    #[test]
+    fn default_features_build_https_endpoint() {
+        build_endpoint(&ApertureClientConfig::default()).expect("HTTPS endpoint should build");
+    }
+
     #[test]
     fn x_token_is_the_only_configured_metadata() {
         let config = ApertureClientConfig::default().with_x_token("secret-token");

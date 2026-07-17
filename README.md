@@ -129,7 +129,7 @@ APERTURE_GRPC_ENDPOINT=https://aperture-grpc.rpcfast.com:443 APERTURE_X_TOKEN=rp
 - HTTP/2 adaptive window: enabled
 - initial stream and connection windows: 16 MiB
 - protobuf encode/decode limits: 16 MiB
-- HTTPS endpoints use native TLS trust roots by default
+- HTTPS endpoints use native TLS trust roots with the `ring` crypto provider by default
 - authentication metadata: optional `X-Token` header only
 - reconnect: enabled forever, exponential backoff from 100ms to 5s
 

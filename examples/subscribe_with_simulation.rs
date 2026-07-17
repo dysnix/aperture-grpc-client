@@ -1,6 +1,6 @@
 use {
     aperture_grpc_client::{
-        ApertureClientConfig, ApertureGrpcClient, SubscribeFilters, VoteFilter,
+        ApertureClientConfig, ApertureGrpcClient, SimulationStatus, SubscribeFilters, VoteFilter,
     },
     futures_util::StreamExt,
 };
@@ -15,30 +15,34 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .init();
 
     let endpoint = std::env::var("APERTURE_GRPC_ENDPOINT")
-        .unwrap_or_else(|_| "https://aperture-grpc.rpcfast.com:443".to_string());
+        .unwrap_or_else(|_| "https://beta-aperture-grpc.rpcfast.com:443".to_string());
     let mut config = ApertureClientConfig::new(endpoint);
     if let Ok(token) = std::env::var("APERTURE_X_TOKEN") {
         config = config.with_x_token(token);
     }
     let client = ApertureGrpcClient::new(config);
-    let filters = SubscribeFilters::default().vote(VoteFilter::NonVoteOnly);
+    let filters = SubscribeFilters::default()
+        .vote(VoteFilter::NonVoteOnly)
+        .include_simulation();
     let mut stream = Box::pin(client.subscribe_with_reconnect(filters));
 
-    while let Some(next) = stream.next().await {
-        let transaction = next?;
+    while let Some(message) = stream.next().await {
+        let transaction = message?;
+        let Some(simulation) = transaction.simulation else {
+            continue;
+        };
         let primary_signature = transaction
             .signatures
             .first()
             .map(|signature| bs58::encode(signature).into_string())
             .unwrap_or_else(|| "<missing>".to_string());
+
+        let status =
+            SimulationStatus::try_from(simulation.status).unwrap_or(SimulationStatus::Unspecified);
+
         println!(
-            "slot={} index={} sig={} static_keys={} loaded_writable={} loaded_readonly={}",
-            transaction.slot,
-            transaction.index,
-            primary_signature,
-            transaction.static_account_keys.len(),
-            transaction.loaded_writable_addresses.len(),
-            transaction.loaded_readonly_addresses.len()
+            "slot={} sig={} status={status:?} bank_slot={:?} error={:?}",
+            transaction.slot, primary_signature, simulation.bank_slot, simulation.error
         );
     }
 
