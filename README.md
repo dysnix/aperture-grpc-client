@@ -34,7 +34,7 @@ use futures_util::StreamExt;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let config = ApertureClientConfig::new("https://aperture-grpc.rpcfast.com:443")
+    let config = ApertureClientConfig::new("https://aperture-txstream.rpcfast.com:443")
         .with_x_token("rpcfast-token");
     let client = ApertureGrpcClient::new(config);
     let filters = SubscribeFilters::default().vote(VoteFilter::NonVoteOnly);
@@ -59,7 +59,7 @@ use futures_util::StreamExt;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let config = ApertureClientConfig::new("https://aperture-grpc.rpcfast.com:443")
+    let config = ApertureClientConfig::new("https://aperture-txstream.rpcfast.com:443")
         .with_x_token("rpcfast-token");
     let client = ApertureGrpcClient::new(config);
     let filters = SubscribeFilters::default()
@@ -88,7 +88,7 @@ use futures_util::StreamExt;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let config = ApertureClientConfig::new("https://aperture-grpc.rpcfast.com:443")
+    let config = ApertureClientConfig::new("https://aperture-txstream.rpcfast.com:443")
         .with_x_token("rpcfast-token");
     let client = ApertureGrpcClient::new(config);
     let filters = SubscribeFilters::default()
@@ -115,12 +115,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 Run the included example:
 
 ```bash
-APERTURE_GRPC_ENDPOINT=https://aperture-grpc.rpcfast.com:443 APERTURE_X_TOKEN=rpcfast-token cargo run --example subscribe
+APERTURE_GRPC_ENDPOINT=https://aperture-txstream.rpcfast.com:443 APERTURE_X_TOKEN=rpcfast-token cargo run --example subscribe
 ```
 
 ## Defaults
 
-- endpoint: `https://aperture-grpc.rpcfast.com:443`
+- endpoint: `https://aperture-txstream.rpcfast.com:443`
 - TCP connect timeout: 3s
 - HTTP/2 keepalive interval: 10s
 - HTTP/2 keepalive timeout: 3s

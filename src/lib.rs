@@ -27,7 +27,7 @@ const X_TOKEN_METADATA_KEY: &str = "x-token";
 /// Client configuration for Aperture's lightweight decoded transaction stream.
 #[derive(Debug, Clone)]
 pub struct ApertureClientConfig {
-    /// Endpoint URI, for example `https://aperture-grpc.rpcfast.com:443`.
+    /// Endpoint URI, for example `https://aperture-txstream.rpcfast.com:443`.
     pub endpoint: String,
     /// TCP/connect timeout.
     pub connect_timeout: Duration,
@@ -78,7 +78,7 @@ impl ApertureClientConfig {
 impl Default for ApertureClientConfig {
     fn default() -> Self {
         Self {
-            endpoint: "https://aperture-grpc.rpcfast.com:443".to_string(),
+            endpoint: "https://aperture-txstream.rpcfast.com:443".to_string(),
             connect_timeout: Duration::from_secs(3),
             request_timeout: None,
             tcp_nodelay: true,
@@ -489,10 +489,10 @@ mod tests {
 
     #[test]
     fn endpoint_scheme_detection_is_https_only() {
-        assert!(endpoint_uses_https("https://aperture-grpc.rpcfast.com:443"));
-        assert!(endpoint_uses_https("HTTPS://aperture-grpc.rpcfast.com:443"));
+        assert!(endpoint_uses_https("https://aperture-txstream.rpcfast.com:443"));
+        assert!(endpoint_uses_https("HTTPS://aperture-txstream.rpcfast.com:443"));
         assert!(!endpoint_uses_https("http://127.0.0.1:10000"));
-        assert!(!endpoint_uses_https("grpc://aperture-grpc.rpcfast.com:443"));
+        assert!(!endpoint_uses_https("grpc://aperture-txstream.rpcfast.com:443"));
     }
 
     #[cfg(all(feature = "tls-native-roots", feature = "tls-ring"))]

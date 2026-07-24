@@ -15,7 +15,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .init();
 
     let endpoint = std::env::var("APERTURE_GRPC_ENDPOINT")
-        .unwrap_or_else(|_| "https://beta-aperture-grpc.rpcfast.com:443".to_string());
+        .unwrap_or_else(|_| "https://aperture-txstream.rpcfast.com:443".to_string());
     let mut config = ApertureClientConfig::new(endpoint);
     if let Ok(token) = std::env::var("APERTURE_X_TOKEN") {
         config = config.with_x_token(token);
