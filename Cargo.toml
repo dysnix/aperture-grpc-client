@@ -1,7 +1,7 @@
 [package]
 name = "aperture-grpc-client"
 edition = "2024"
-version = "0.3.2"
+version = "0.4.0"
 authors = ["Dysnix"]
 description = "Rust client for Aperture's lightweight decoded transaction gRPC stream"
 homepage = "https://rpcfast.com"
@@ -19,7 +19,7 @@ tls-ring = ["tonic/tls-ring"]
 tls-webpki-roots = ["tonic/tls-webpki-roots"]
 
 [dependencies]
-aperture-grpc-proto = "0.3.0"
+aperture-grpc-proto = "0.4.0"
 async-stream = "0.3.6"
 futures-core = "0.3.31"
 thiserror = "2.0.7"

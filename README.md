@@ -11,7 +11,7 @@ and batched txstream RPCs.
 
 ```toml
 [dependencies]
-aperture-grpc-client = "0.3.0"
+aperture-grpc-client = "0.4.0"
 ```
 
 Publish `aperture-grpc-proto` before publishing this crate; the client depends
@@ -42,12 +42,24 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     while let Some(next) = stream.next().await {
         let tx = next?;
-        println!("slot={} index={} sigs={}", tx.slot, tx.index, tx.signatures.len());
+        println!(
+            "slot={} index={} sigs={} alt_resolution={:?}",
+            tx.slot,
+            tx.index,
+            tx.signatures.len(),
+            tx.alt_resolution
+        );
     }
 
     Ok(())
 }
 ```
+
+`DecodedTransaction.alt_resolution` is `Some("FULL")` when the emitted account
+list is complete, `Some("PARTIAL")` when one or more ALT entries could not be
+resolved, and `None` when the server does not provide resolution status. The
+field is additive on the wire, so older protobuf clients continue to decode
+responses and ignore it.
 
 For lower per-message overhead, subscribe to batches:
 

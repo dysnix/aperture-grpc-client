@@ -489,10 +489,16 @@ mod tests {
 
     #[test]
     fn endpoint_scheme_detection_is_https_only() {
-        assert!(endpoint_uses_https("https://aperture-txstream.rpcfast.com:443"));
-        assert!(endpoint_uses_https("HTTPS://aperture-txstream.rpcfast.com:443"));
+        assert!(endpoint_uses_https(
+            "https://aperture-txstream.rpcfast.com:443"
+        ));
+        assert!(endpoint_uses_https(
+            "HTTPS://aperture-txstream.rpcfast.com:443"
+        ));
         assert!(!endpoint_uses_https("http://127.0.0.1:10000"));
-        assert!(!endpoint_uses_https("grpc://aperture-txstream.rpcfast.com:443"));
+        assert!(!endpoint_uses_https(
+            "grpc://aperture-txstream.rpcfast.com:443"
+        ));
     }
 
     #[cfg(all(feature = "tls-native-roots", feature = "tls-ring"))]
