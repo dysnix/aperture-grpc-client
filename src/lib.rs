@@ -17,8 +17,8 @@ use {
 
 pub use aperture_grpc_proto::{
     CompiledInstruction, DecodedTransaction, DecodedTransactionBatch, MessageHeader,
-    SimulationStatus, SubscribeTransactionsRequest, TransactionReturnData, TransactionSimulation,
-    TransactionVersion, VoteFilter, aperture_client, aperture_server,
+    SimulationStatus, SubscribeTransactionsRequest, TransactionConfig, TransactionReturnData,
+    TransactionSimulation, TransactionVersion, VoteFilter, aperture_client, aperture_server,
 };
 
 const DEFAULT_MAX_MESSAGE_SIZE: usize = 16 * 1024 * 1024;
