@@ -16,9 +16,12 @@ use {
 };
 
 pub use aperture_grpc_proto::{
-    CompiledInstruction, DecodedTransaction, DecodedTransactionBatch, MessageHeader,
-    SimulationStatus, SubscribeTransactionsRequest, TransactionConfig, TransactionReturnData,
-    TransactionSimulation, TransactionVersion, VoteFilter, aperture_client, aperture_server,
+    AccountDelta, CompiledInstruction, DecodedTransaction, DecodedTransactionBatch, LamportDelta,
+    MessageHeader, SimulationAccountData, SimulationAccountState, SimulationConfig,
+    SimulationInclude, SimulationInnerInstruction, SimulationInnerInstructions,
+    SimulationStateDeltas, SimulationStatus, SubscribeTransactionsRequest, TokenBalanceDelta,
+    TokenBalanceState, TransactionConfig, TransactionReturnData, TransactionSimulation,
+    TransactionVersion, VoteFilter, aperture_client, aperture_server,
 };
 
 const DEFAULT_MAX_MESSAGE_SIZE: usize = 16 * 1024 * 1024;
@@ -144,6 +147,8 @@ pub struct SubscribeFilters {
     pub signatures_only: bool,
     /// Wait for transaction simulation and append the result to each transaction.
     pub include_simulation: bool,
+    /// Presence enables simulation and selects optional results.
+    pub simulation_config: Option<SimulationConfig>,
 }
 
 impl SubscribeFilters {
@@ -187,6 +192,11 @@ impl SubscribeFilters {
         self
     }
 
+    pub fn simulation_config(mut self, config: SimulationConfig) -> Self {
+        self.simulation_config = Some(config);
+        self
+    }
+
     pub fn with_include_simulation(mut self, include_simulation: bool) -> Self {
         self.include_simulation = include_simulation;
         self
@@ -207,6 +217,7 @@ impl From<SubscribeFilters> for SubscribeTransactionsRequest {
                 .collect(),
             signatures_only: filters.signatures_only,
             include_simulation: filters.include_simulation,
+            simulation_config: filters.simulation_config,
         }
     }
 }
@@ -450,6 +461,23 @@ fn apply_x_token(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn simulation_config_survives_filter_conversion_without_legacy_flag() {
+        let config = SimulationConfig {
+            include: Some(SimulationInclude {
+                token_balance_deltas: true,
+                ..Default::default()
+            }),
+            account_include: vec![vec![1; 32]],
+            ..Default::default()
+        };
+        let request = SubscribeTransactionsRequest::from(
+            SubscribeFilters::default().simulation_config(config.clone()),
+        );
+        assert!(!request.include_simulation);
+        assert_eq!(request.simulation_config, Some(config));
+    }
 
     #[test]
     fn filters_convert_to_proto_request() {

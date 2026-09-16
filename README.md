@@ -185,3 +185,61 @@ The stream is pre-execution by default and does not include confirmed execution
 metadata such as balances, rewards, or inner instructions. An
 `include_simulation` subscription adds predicted simulation status, error,
 simulation slot, and timing; it is not confirmation or finality.
+
+### Configurable simulation details
+
+These APIs are part of unreleased version 0.6. Local builds require the matching
+`../aperture-grpc-proto` checkout. Publish proto 0.6 before the client and switch
+consumers to the registry dependency after publication.
+
+Presence of `simulation_config` enables simulation on either TxStream RPC and
+requires the same `simulation` entitlement as `include_simulation`. Without a
+config, `include_simulation: true` retains status, error, consumed compute units,
+bank slot and timing; all additional details remain disabled.
+
+```json
+{
+  "simulation_config": {
+    "include": {
+      "compute_units": true,
+      "lamport_deltas": true,
+      "account_deltas": false,
+      "token_balance_deltas": true,
+      "inner_instructions": false,
+      "logs": false,
+      "return_data": false
+    },
+    "account_include": [],
+    "owner_include": [],
+    "changed_only": true,
+    "account_data": { "pre": false, "post": false }
+  }
+}
+```
+
+All `include` flags default to false. Status, error, bank slot and timing are
+always returned. An explicit config overrides the legacy detail defaults even
+when `include_simulation` is also true. `account_data.pre/post` require
+`include.account_deltas`; absent data differs from present empty data.
+
+`simulation.simulation_state_deltas` contains the requested lamport, account and
+token balance lists for writable accounts. Missing pre/post account or token
+state represents creation/closure or conversion to/from a token account.
+Token amounts are raw unsigned integers with mint, token authority owner and
+program ID; collection performs no mint lookup and returns no decimals or UI
+amounts. Token-2022 amounts describe the base token balance, not every extension
+(e.g. withheld fees or confidential balances). Pre-state includes the fee payer
+balance before fee deduction. Failed simulations report effective rollback
+state, preserving applicable fee and nonce changes rather than failed writes.
+These are predictions against `bank_slot`, not confirmed transaction effects.
+
+The nested filters affect deltas only, independently of transaction subscription
+filters. Keys are 32-byte pubkeys (base64 in protobuf JSON). Empty lists are
+unrestricted; account selection and owner selection are ANDed. Owner matching
+accepts either pre- or post-account owner program, not the token authority.
+`changed_only` defaults to true; false includes unchanged selected writable
+accounts (and unchanged token accounts for token balances). Account deltas carry
+`changed` even when data bytes are omitted. Lamport and token lists compare their
+own balance/state values. Inner instructions carry resolved keys and stack
+heights and work with `signatures_only` and Aperture ALT cache misses; delta
+filters do not filter logs or CPI.
