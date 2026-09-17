@@ -25,11 +25,8 @@ retain the version but omit config along with the message payload.
 
 ```toml
 [dependencies]
-aperture-grpc-client = "0.5.0"
+aperture-grpc-client = "0.6.0"
 ```
-
-Publish `aperture-grpc-proto` before publishing this crate; the client depends
-on the matching proto crate version.
 
 For unreleased development builds:
 
@@ -185,3 +182,39 @@ The stream is pre-execution by default and does not include confirmed execution
 metadata such as balances, rewards, or inner instructions. An
 `include_simulation` subscription adds predicted simulation status, error,
 simulation slot, and timing; it is not confirmation or finality.
+
+## Simulation details
+
+`include_simulation()` returns status, error, compute units, bank slot and timing.
+Logs and other details are disabled by default.
+
+Use `simulation_config()` to choose additional fields:
+
+```rust,no_run
+use aperture_grpc_client::{SimulationConfig, SimulationInclude, SubscribeFilters};
+
+let filters = SubscribeFilters::default().simulation_config(SimulationConfig {
+    include: Some(SimulationInclude {
+        compute_units: true,
+        token_balance_deltas: true,
+        logs: true,
+        ..Default::default()
+    }),
+    ..Default::default()
+});
+```
+
+An explicit config enables simulation on either RPC and takes precedence over
+`include_simulation`. All `SimulationInclude` flags default to false:
+`compute_units`, `account_deltas`, `token_balance_deltas`, `inner_instructions`,
+`logs` and `return_data`.
+
+Deltas contain only changed writable accounts. Account states contain metadata,
+without raw data; token amounts are raw integers without decimals or UI amounts.
+CPI instructions carry resolved program/account keys and stack height.
+Optional `SimulationConfig.account_include` and `owner_include` filters select
+deltas; empty lists allow all accounts. These options also work with
+`signatures_only`.
+
+See the [proto documentation](https://docs.rs/aperture-grpc-proto/0.6.0)
+for response fields and filter semantics.
