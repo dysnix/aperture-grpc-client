@@ -25,7 +25,7 @@ retain the version but omit config along with the message payload.
 
 ```toml
 [dependencies]
-aperture-grpc-client = "0.6.0"
+aperture-grpc-client = "0.6.1"
 ```
 
 For unreleased development builds:
@@ -216,5 +216,5 @@ Optional `SimulationConfig.account_include` and `owner_include` filters select
 deltas; empty lists allow all accounts. These options also work with
 `signatures_only`.
 
-See the [proto documentation](https://docs.rs/aperture-grpc-proto/0.6.0)
+See the [proto documentation](https://docs.rs/aperture-grpc-proto/0.6.1)
 for response fields and filter semantics.
