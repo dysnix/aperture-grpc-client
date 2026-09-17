@@ -16,12 +16,12 @@ use {
 };
 
 pub use aperture_grpc_proto::{
-    AccountDelta, CompiledInstruction, DecodedTransaction, DecodedTransactionBatch, LamportDelta,
-    MessageHeader, SimulationAccountData, SimulationAccountState, SimulationConfig,
-    SimulationInclude, SimulationInnerInstruction, SimulationInnerInstructions,
-    SimulationStateDeltas, SimulationStatus, SubscribeTransactionsRequest, TokenBalanceDelta,
-    TokenBalanceState, TransactionConfig, TransactionReturnData, TransactionSimulation,
-    TransactionVersion, VoteFilter, aperture_client, aperture_server,
+    AccountDelta, CompiledInstruction, DecodedTransaction, DecodedTransactionBatch, MessageHeader,
+    SimulationAccountState, SimulationConfig, SimulationInclude, SimulationInnerInstruction,
+    SimulationInnerInstructions, SimulationStateDeltas, SimulationStatus,
+    SubscribeTransactionsRequest, TokenBalanceDelta, TokenBalanceState, TransactionConfig,
+    TransactionReturnData, TransactionSimulation, TransactionVersion, VoteFilter, aperture_client,
+    aperture_server,
 };
 
 const DEFAULT_MAX_MESSAGE_SIZE: usize = 16 * 1024 * 1024;

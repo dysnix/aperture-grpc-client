@@ -202,28 +202,25 @@ bank slot and timing; all additional details remain disabled.
   "simulation_config": {
     "include": {
       "compute_units": true,
-      "lamport_deltas": true,
       "account_deltas": false,
       "token_balance_deltas": true,
       "inner_instructions": false,
-      "logs": false,
+      "logs": true,
       "return_data": false
     },
     "account_include": [],
-    "owner_include": [],
-    "changed_only": true,
-    "account_data": { "pre": false, "post": false }
+    "owner_include": []
   }
 }
 ```
 
 All `include` flags default to false. Status, error, bank slot and timing are
 always returned. An explicit config overrides the legacy detail defaults even
-when `include_simulation` is also true. `account_data.pre/post` require
-`include.account_deltas`; absent data differs from present empty data.
+when `include_simulation` is also true. Raw pre/post account data and separate
+lamport deltas are not supported. Account deltas contain metadata only.
 
-`simulation.simulation_state_deltas` contains the requested lamport, account and
-token balance lists for writable accounts. Missing pre/post account or token
+`simulation.simulation_state_deltas` contains the requested account metadata and
+token balance lists for changed writable accounts. Missing pre/post account or token
 state represents creation/closure or conversion to/from a token account.
 Token amounts are raw unsigned integers with mint, token authority owner and
 program ID; collection performs no mint lookup and returns no decimals or UI
@@ -237,9 +234,17 @@ The nested filters affect deltas only, independently of transaction subscription
 filters. Keys are 32-byte pubkeys (base64 in protobuf JSON). Empty lists are
 unrestricted; account selection and owner selection are ANDed. Owner matching
 accepts either pre- or post-account owner program, not the token authority.
-`changed_only` defaults to true; false includes unchanged selected writable
-accounts (and unchanged token accounts for token balances). Account deltas carry
-`changed` even when data bytes are omitted. Lamport and token lists compare their
-own balance/state values. Inner instructions carry resolved keys and stack
+Changed-only behavior is mandatory and has no request switch. Account deltas
+carry `changed: true`, including changes to raw data that is never serialized.
+Token lists contain only changes to their decoded base token state. Inner instructions carry resolved keys and stack
 heights and work with `signatures_only` and Aperture ALT cache misses; delta
 filters do not filter logs or CPI.
+
+### Removed simulation options
+
+Raw account data (`account_data.pre/post`), separate `lamport_deltas`, and the
+`changed_only` switch were removed from unreleased 0.6. Regenerate clients and
+remove these options from JSON requests. Their protobuf field numbers and names
+are reserved; existing binary fields are ignored and cannot enable unchanged
+results. CU usage, logs, CPI, account metadata, token deltas and return data remain
+opt-in. Legacy `include_simulation=true` still returns CU without logs.
