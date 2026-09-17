@@ -244,7 +244,8 @@ filters do not filter logs or CPI.
 
 Raw account data (`account_data.pre/post`), separate `lamport_deltas`, and the
 `changed_only` switch were removed from unreleased 0.6. Regenerate clients and
-remove these options from JSON requests. Their protobuf field numbers and names
-are reserved; existing binary fields are ignored and cannot enable unchanged
-results. CU usage, logs, CPI, account metadata, token deltas and return data remain
-opt-in. Legacy `include_simulation=true` still returns CU without logs.
+remove these options from JSON requests. Removed fields are not reserved because
+0.6 has not been released. Compatibility is maintained with the production 0.5
+schema; unreleased 0.6 fields are not a compatibility contract. CU usage, logs, CPI,
+account metadata, token deltas and return data remain opt-in. Legacy
+`include_simulation=true` still returns CU without logs.
